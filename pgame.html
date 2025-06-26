@@ -1,0 +1,985 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Vibeability</title>
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+<style>
+  body {
+    font-family: 'Arial', sans-serif;
+    background-color: #1a1a1a;
+    color: #eee;
+    margin: 0;
+    padding: 20px;
+  }
+  
+  .container {
+    max-width: 800px;
+    margin: 0 auto;
+    background-color: #2a2a2a;
+    padding: 10px;
+    border-radius: 10px;
+    box-shadow: 0 0 20px rgba(0,0,0,0.5);
+  }
+  
+  h1 {
+    text-align: center;
+    color: #00d4ff;
+  }
+  .header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+    }
+
+    @media (min-width: 600px) {
+    .header {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    h1 {
+        text-align: left;
+        margin: 0;
+    }
+
+    .mode-selector {
+        margin-bottom: 0;
+    }
+    }
+
+  
+  .mode-selector {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+    gap: 10px;
+  }
+  
+  .mode-btn {
+    background-color: #333;
+    color: #eee;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.3s;
+  }
+  .mode-btn:hover {
+    background-color: #444;
+  }
+  
+  .mode-btn.active {
+    background-color: #00d4ff;
+    color: #111;
+    cursor: default;
+  }
+  .mode-btn.active:hover {
+    background-color: #00d4ff;
+  }
+  
+  .expression-display {
+    background-color: #333;
+    padding: 15px;
+    border-radius: 5px;
+    margin-bottom: 20px;
+    text-align: center;
+  }
+  
+  .expression {
+    font-size: 1.2em;
+    margin-top: 10px;
+    font-weight: bold;
+  }
+  
+  .x {
+    color: #00d4ff;
+  }
+  
+  .y {
+    color: #ff6b35;
+  }
+  
+  .controls {
+    margin-top: 20px;
+    text-align: center;
+  }
+  
+  .guess-container {
+    margin-bottom: 15px;
+  }
+  
+  .guess-label {
+    display: block;
+    margin-bottom: 5px;
+  }
+  
+  .guess-value {
+    font-weight: bold;
+    color: #00d4ff;
+  }
+
+  input[type="range"] {
+    width: 100%;
+    margin-top: 8px;
+    margin-bottom: 12px;
+    -webkit-appearance: none;
+    background: #222;
+    height: 25px;
+    border-radius: 6px;
+    border: none;
+    outline: none;
+  }
+
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    background: #08f;
+    cursor: pointer;
+    border-radius: 50%;
+  }
+
+  input[type="range"]::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    background: #08f;
+    cursor: pointer;
+    border-radius: 50%;
+  }
+  
+  .btn {
+    background-color: #00d4ff;
+    color: #111;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+    margin: 5px;
+    transition: all 0.3s;
+  }
+  
+  .btn:hover {
+    background-color: #00b4d8;
+  }
+  
+  #result {
+    margin-top: 15px;
+    padding: 10px;
+    border-radius: 5px;
+    background-color: #333;
+    min-height: 50px;
+  }
+  
+  .stats {
+    display: flex;
+    justify-content: space-around;
+    margin-top: 30px;
+    text-align: center;
+  }
+  
+  .stat {
+    background-color: #333;
+    padding: 10px 15px;
+    border-radius: 5px;
+    min-width: 80px;
+  }
+  
+  .stat-value {
+    font-size: 1.5em;
+    font-weight: bold;
+    color: #00d4ff;
+  }
+  
+  .difficulty-indicator {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 0.8em;
+    margin-left: 10px;
+    font-weight: bold;
+  }
+  
+  .diff-easy {
+    background-color: #4CAF50;
+    color: white;
+  }
+  
+  .diff-medium {
+    background-color: #FFC107;
+    color: black;
+  }
+  
+  .diff-hard {
+    background-color: #F44336;
+    color: white;
+  }
+  
+  .diff-expert {
+    background-color: #9C27B0;
+    color: white;
+  }
+
+  .dist-info {
+    margin-top: 10px;
+    font-size: 0.9em;
+    color: #aaa;
+  }
+  
+  .dist-info span {
+    color: #00d4ff;
+  }
+  
+  .dist-info span.y {
+    color: #ff6b35;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h1>Vibeability</h1>
+        <div class="mode-selector">
+            <button class="mode-btn active" data-mode="easy">Easy</button>
+            <button class="mode-btn" data-mode="medium">Medium</button>
+            <button class="mode-btn" data-mode="hard">Hard</button>
+            <button class="mode-btn" data-mode="expert">Expert</button>
+        </div>
+    </div>
+
+  <div class="expression-display">
+    <div class="expression">
+      P(<span class="expr-left" id="left-expr">X</span> > <span class="expr-right" id="right-expr">Y</span>) = ?
+      <span id="difficulty-badge" class="difficulty-indicator diff-easy">Easy</span>
+    </div>
+    <div class="dist-info" id="dist-info">
+      <span class="x">X<sub>1</sub>, X<sub>2</sub>, ...</span> are samples from Distribution X (blue)<br>
+      <span class="y">Y<sub>1</sub>, Y<sub>2</sub>, ...</span> are samples from Distribution Y (orange)
+    </div>
+  </div>
+
+  <div id="plot"></div>
+
+  <div class="controls">
+    <div class="guess-container">
+      <label class="guess-label" for="guess">Your guess: <span class="guess-value" id="guess-value">0.50</span></label>
+      <input type="range" id="guess" min="0" max="1" step="0.005" value="0.5" />
+    </div>
+    <div>
+      <button class="btn" id="submit-btn">Submit</button>
+      <button class="btn" id="next-btn" style="display:none;">Next</button>
+    </div>
+    <div id="result"></div>
+  </div>
+
+  <div class="stats">
+    <div class="stat">
+      <div class="stat-value" id="total-questions">0</div>
+      <div>Questions</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value" id="avg-error">0.0%</div>
+      <div>Avg Error</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value" id="best-error">-</div>
+      <div>Best Error</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Statistics tracking
+let defaultGameStats = {
+  totalQuestions: 0,
+  totalError: 0,
+  bestError: Infinity,
+  currentMode: 'easy'
+};
+let gameStats = { ...defaultGameStats }; // a copy
+
+// Analytic PDFs
+function normalPDF(x, mu, sigma) {
+  let coeff = 1 / (sigma * Math.sqrt(2 * Math.PI));
+  let exponent = -((x - mu) ** 2) / (2 * sigma * sigma);
+  return coeff * Math.exp(exponent);
+}
+
+function uniformPDF(x, a, b) {
+  if (x < a || x > b) return 0;
+  return 1 / (b - a);
+}
+
+function exponentialPDF(x, lambda) {
+  if (x < 0) return 0;
+  return lambda * Math.exp(-lambda * x);
+}
+
+function betaPDF(x, alpha, beta) {
+  if(x < 0 || x > 1) return 0;
+  function gamma(z) {
+  if (z < 0.5) {
+    // Use reflection formula: Γ(z)Γ(1-z) = π/sin(πz)
+    return Math.PI / (Math.sin(Math.PI * z) * gammaFunction(1 - z));
+  }
+  
+    // Lanczos approximation with g=7, n=9
+    const g = 7;
+    const coeff = [
+      0.99999999999980993,
+      676.5203681218851,
+      -1259.1392167224028,
+      771.32342877765313,
+      -176.61502916214059,
+      12.507343278686905,
+      -0.13857109526572012,
+      9.9843695780195716e-6,
+      1.5056327351493116e-7
+    ];
+    
+    z -= 1;
+    let x = coeff[0];
+    for (let i = 1; i < coeff.length; i++) {
+      x += coeff[i] / (z + i);
+    }
+    
+    const t = z + g + 0.5;
+    const sqrt2pi = Math.sqrt(2 * Math.PI);
+    
+    return sqrt2pi * Math.pow(t, z + 0.5) * Math.exp(-t) * x;
+  }
+  
+  function betaFunc(a,b) {
+    return gamma(a)*gamma(b)/gamma(a+b);
+  }
+  return Math.pow(x, alpha-1) * Math.pow(1-x, beta-1) / betaFunc(alpha,beta);
+}
+
+function betaSample(alpha, beta) {
+  function gammaSample(k, theta) {
+    if(k < 1) {
+      let c = (1/k);
+      let d = ((1-k)*Math.pow(k, k/(1-k)));
+      while(true){
+        let u = Math.random();
+        let v = Math.random();
+        let z = -Math.log(u);
+        let e = -Math.log(v);
+        if(z + e >= d) return Math.pow(z, c)*theta;
+      }
+    } else {
+      let d = k - 1/3;
+      let c = 1/Math.sqrt(9*d);
+      while(true){
+        let x = normalSample(0,1);
+        let v = 1 + c*x;
+        if(v <= 0) continue;
+        v = v*v*v;
+        let u = Math.random();
+        if(u < 1 - 0.0331*x*x*x*x) return d*v*theta;
+        if(Math.log(u) < 0.5*x*x + d*(1 - v + Math.log(v))) return d*v*theta;
+      }
+    }
+  }
+  function normalSample(mu,sigma){
+    let u1 = Math.random(), u2 = Math.random();
+    let z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+    return mu + sigma*z;
+  }
+  let x = gammaSample(alpha, 1);
+  let y = gammaSample(beta, 1);
+  return x/(x+y);
+}
+
+class Distribution {
+  constructor(distDef) {
+    this.distDef = distDef;
+    this.name = distDef.name;
+    this.paramCount = distDef.paramCount;
+    this.pdfWithParams = distDef.pdf;
+    this.sampleFunc = distDef.sample;
+    this.params = distDef.randomParams();
+    this.paramBounds = distDef.paramBounds;
+  }
+
+  sample() {
+    return this.sampleFunc(this.params);
+  }
+
+  pdf(x) {
+    return this.pdfWithParams(x, this.params);
+  }
+
+  copy() {
+    let out = new Distribution(this.distDef);
+    out.params = [...this.params];
+    return out;
+  }
+
+  toString() {
+    switch(this.name) {
+      case 'normal':
+        return `N(${this.params[0].toFixed(1)}, ${this.params[1].toFixed(1)})`;
+      case 'uniform':
+        return `U(${this.params[0].toFixed(1)}, ${this.params[1].toFixed(1)})`;
+      case 'exponential':
+        return `Exp(${this.params[0].toFixed(2)})`;
+      case 'beta':
+        return `Beta(${this.params[0].toFixed(1)}, ${this.params[1].toFixed(1)})`;
+      default:
+        return this.name;
+    }
+  }
+}
+
+// Distribution types
+const distTypes = [
+  {
+    name: "normal",
+    paramCount: 2,
+    pdf: (x, p) => normalPDF(x, p[0], p[1]),
+    randomParams: () => {
+      let mu = (Math.random() - 0.5) * 6;
+      let sigma = 0.5 + Math.random() * 1.5;
+      return [mu, sigma];
+    },
+    paramBounds: [[-5,5],[0.4,2.4]],
+    sample: (p) => {
+      let u1 = Math.random(), u2 = Math.random();
+      let z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+      return p[0] + p[1] * z;
+    }
+  },
+  {
+    name: "uniform",
+    paramCount: 2,
+    pdf: (x, p) => uniformPDF(x, p[0], p[1]),
+    randomParams: () => {
+      let a = (Math.random() - 0.5) * 8;
+      let width = 1 + Math.random() * 6;
+      return [a, a + width];
+    },
+    paramBounds: [[-5,5],[-4,15]],
+    sample: (p) => p[0] + (p[1]-p[0]) * Math.random()
+  },
+  {
+    name: "exponential",
+    paramCount: 1,
+    pdf: (x, p) => exponentialPDF(x, p[0]),
+    randomParams: () => [0.3 + Math.random() * 0.8],
+    paramBounds: [[0.3,1.1]],
+    sample: (p) => -Math.log(1 - Math.random()) / p[0]
+  },
+  {
+    name: "beta",
+    paramCount: 2,
+    pdf: (x,p) => betaPDF(x, p[0], p[1]),
+    randomParams: () => {
+      let α = 1 + Math.random() * 2.5;
+      let β = 1 + Math.random() * 2.5;
+      return [α, β];
+    },
+    paramBounds: [[1,3.5],[1,3.5]],
+    sample: (p) => betaSample(p[0], p[1])
+  }
+];
+
+// Expression Node for CFG
+class ExpressionNode {
+  constructor(type, ...children) {
+    this.type = type;
+    this.children = children;
+    for (let i = 0; i < this.children.length; i++) {
+        this.children[i].parent = this
+    }
+    this.sampleIds = {};
+    this.parent = null
+  }
+
+  sample() {
+    switch(this.type) {
+      case 'dist':
+        return this.children[0].sample();
+      case 'add':
+        return this.children[0].sample() + this.children[1].sample();
+      case 'sub':
+        return this.children[0].sample() - this.children[1].sample();
+      case 'mul':
+        return this.children[0].sample() * this.children[1].sample();
+      case 'div':
+        let denom = this.children[1].sample();
+        return denom !== 0 ? this.children[0].sample() / denom : 0;
+      case 'min':
+        return Math.min(this.children[0].sample(), this.children[1].sample());
+      case 'max':
+        return Math.max(this.children[0].sample(), this.children[1].sample());
+      case 'square':
+        let val = this.children[0].sample();
+        return val * val;
+      case 'cube':
+        let val2 = this.children[0].sample();
+        return val2 * val2 * val2;
+      case 'abs':
+        return Math.abs(this.children[0].sample());
+      case 'sqrt':
+        return Math.sqrt(Math.abs(this.children[0].sample()));
+      case 'log':
+        let logVal = Math.abs(this.children[0].sample()) + 0.001;
+        return Math.log(logVal);
+      case 'exp':
+        return Math.exp(Math.max(-10, Math.min(10, this.children[0].sample())));
+      case 'sin':
+        return Math.sin(this.children[0].sample());
+      case 'cos':
+        return Math.cos(this.children[0].sample());
+      case 'min_of':
+        return Math.min(...this.children.map(c => c.sample()));
+      case 'max_of':
+        return Math.max(...this.children.map(c => c.sample()));
+      case 'median_of':
+        let values = this.children.map(c => c.sample()).sort((a,b) => a-b);
+        return values[Math.floor(values.length/2)];
+      default:
+        return 0;
+    }
+  }
+
+  toString() {
+    const mustParenthesize = this.parent && ['add', 'sub', 'mul', 'div', 'sqrt', 'square', 'cube'].includes(this.parent.type);
+    switch(this.type) {
+      case 'dist':{
+        const distId = this.children[0].distId;
+        const distLower = distId.toLowerCase();
+        return `<span class="${distLower}">${distId}<sub>${this.sampleId || ''}</sub></span>`;}
+      case 'add':{
+        let out = `${this.children[0].toString()} + ${this.children[1].toString()}`;
+        if (mustParenthesize) { out = `(${out})`; }
+        return out;}
+      case 'sub':{
+        let out =  `${this.children[0].toString()} - ${this.children[1].toString()}`;
+        if (mustParenthesize) { out = `(${out})`; }
+        return out;}
+      case 'mul':{
+        let out = `${this.children[0].toString()} × ${this.children[1].toString()}`;
+        if (mustParenthesize) { out = `(${out})`; }
+        return out;}
+      case 'div':{
+        let out = `${this.children[0].toString()} ÷ ${this.children[1].toString()}`;
+        if (mustParenthesize) { out = `(${out})`; }
+        return out;}
+      case 'min':
+        return `min(${this.children[0].toString()}, ${this.children[1].toString()})`;
+      case 'max':
+        return `max(${this.children[0].toString()}, ${this.children[1].toString()})`;
+      case 'square':
+        return `${this.children[0].toString()}²`;
+      case 'cube':
+        return `${this.children[0].toString()}³`;
+      case 'abs':
+        return `|${this.children[0].toString()}|`;
+      case 'sqrt':
+        return `√${this.children[0].toString()}`;
+      case 'log':
+        return `log(${this.children[0].toString()})`;
+      case 'exp':
+        return `exp(${this.children[0].toString()})`;
+      case 'sin':
+        return `sin(${this.children[0].toString()})`;
+      case 'cos':
+        return `cos(${this.children[0].toString()})`;
+      case 'min_of':
+        return `min(${this.children.map(c => c.toString()).join(', ')})`;
+      case 'max_of':
+        return `max(${this.children.map(c => c.toString()).join(', ')})`;
+      case 'median_of':
+        return `median(${this.children.map(c => c.toString()).join(', ')})`;
+      default:
+        return '?';
+    }
+  }
+
+  // Assign sample IDs to all dist nodes
+  assignSampleIds(otherXNodes = [], otherYNodes = []) {
+    const xNodes = [];
+    const yNodes = [];
+    
+    function traverse(node) {
+      if (node.type === 'dist') {
+        if (node.children[0].distId === 'X') {
+          const id = xNodes.length + otherXNodes.length + 1;
+          node.sampleId = id;
+          xNodes.push(node);
+        } else {
+          const id = yNodes.length + otherYNodes.length + 1;
+          node.sampleId = id;
+          yNodes.push(node);
+        }
+      }
+      
+      if (node.children) {
+        node.children.forEach(traverse);
+      }
+    }
+    
+    traverse(this);
+    return { xNodes, yNodes };
+  }
+}
+
+function randomChoice(arr) {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+function generateExpression(mode, dist) {
+  const maxDepths = { easy: 1, medium: 2, hard: 3, expert: 4 };
+  const maxDepth = maxDepths[mode] || 1;
+  
+  // Helper to create a dist node
+  const createDistNode = (dist) => {
+    const node = new ExpressionNode('dist', dist);
+    return node;
+  };
+  
+  // Recursive generation
+  function generate(depth) {
+    if (depth >= maxDepth || Math.random() < 0) {
+        return createDistNode(dist);
+        // return Math.random() < 0.5 ? createDistNode(distX) : createDistNode(distY);
+    }
+    
+    const operations = {
+      easy: ['add', 'sub', 'abs'],
+      medium: ['add', 'sub', 'mul', 'min', 'max', 'square', 'abs'],
+      hard: ['add', 'sub', 'mul', 'div', 'min', 'max', 'square', 'cube', 'abs', 'sqrt'],
+      expert: ['add', 'sub', 'mul', 'div', 'min', 'max', 'square', 'cube', 'abs', 'sqrt', 'log', 'exp', 'sin', 'cos', 'min_of', 'max_of', 'median_of']
+    };
+    
+    const op = randomChoice(operations[mode]);
+    
+    // Unary operations
+    if (['square', 'cube', 'abs', 'sqrt', 'log', 'exp', 'sin', 'cos'].includes(op)) {
+      return new ExpressionNode(op, generate(depth + 1));
+    }
+    
+    // Binary operations
+    if (['add', 'sub', 'mul', 'div', 'min', 'max'].includes(op)) {
+      return new ExpressionNode(op, generate(depth + 1), generate(depth + 1));
+    }
+    
+    // Multi-argument operations
+    if (['min_of', 'max_of', 'median_of'].includes(op)) {
+      const count = 2 + Math.floor(Math.random() * 2); // 2-3 args
+      const args = Array(count).fill().map(() => generate(depth + 1));
+      return new ExpressionNode(op, ...args);
+    }
+    
+    return Math.random() < 0.5 ? createDistNode(distX) : createDistNode(distY);
+  }
+  
+  return generate(1);
+}
+
+function calcTrueProbability(leftExpr, rightExpr, N = 8000) {
+  let count = 0;
+  for(let i = 0; i < N; i++) {
+    try {
+      let leftSample = leftExpr.sample();
+      let rightSample = rightExpr.sample();
+      if (isFinite(leftSample) && isFinite(rightSample) && leftSample > rightSample) {
+        count++;
+      }
+    } catch(e) {
+        console.log(`INVALID SAMPLE ${e}`)
+        console.log(`leftExpr:${leftExpr}, rightExpr:${rightExpr}`)
+      // Skip invalid samples
+    }
+  }
+  return count / N;
+}
+
+// Globals
+let currentLeftExpr, currentRightExpr, distX, distY;
+
+// UI Elements
+const guessSlider = document.getElementById("guess");
+const guessValueLabel = document.getElementById("guess-value");
+const submitBtn = document.getElementById("submit-btn");
+const nextBtn = document.getElementById("next-btn");
+const resultDiv = document.getElementById("result");
+const leftExprSpan = document.getElementById("left-expr");
+const rightExprSpan = document.getElementById("right-expr");
+const difficultyBadge = document.getElementById("difficulty-badge");
+const distInfoDiv = document.getElementById("dist-info");
+
+// Get mode from URL or default to easy
+function getModeFromURL() {
+  const params = new URLSearchParams(window.location.search);
+  return params.get('mode') || 'easy';
+}
+
+function resetModeFromURL() {
+    let URLMode = getModeFromURL();
+    if (URLMode == gameStats.currentMode) { return; }
+    gameStats = { ...defaultGameStats};
+    gameStats.currentMode = URLMode;
+    // Update active mode button
+    document.querySelectorAll('.mode-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.mode === gameStats.currentMode);
+    });
+}
+
+// Update URL with current mode
+function updateURL(mode) {
+  const newUrl = window.location.pathname + '?mode=' + mode;
+  window.history.pushState({}, '', newUrl);
+}
+
+// Mode selection
+document.querySelectorAll('.mode-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const mode = btn.dataset.mode;
+    if (mode == gameStats.currentMode) { return; }
+    updateURL(mode);
+    resetModeFromURL();
+    nextQuestion();
+  });
+});
+
+function updateGuessLabel() {
+  guessValueLabel.textContent = Number(guessSlider.value).toFixed(2);
+}
+
+function updateStats() {
+  document.getElementById('total-questions').textContent = gameStats.totalQuestions;
+  document.getElementById('avg-error').textContent = gameStats.totalQuestions > 0 ? 
+    ((gameStats.totalError / gameStats.totalQuestions) * 100).toFixed(1) + '%' : '0.0%';
+  document.getElementById('best-error').textContent = gameStats.bestError === Infinity ? '-' : 
+    (gameStats.bestError * 100).toFixed(1) + '%';
+}
+
+// Generate x range for analytical PDFs
+function generateXRange(dist, points = 300) {
+  const params = dist.params;
+  let minX, maxX;
+  
+  switch(dist.name) {
+    case "normal":
+      minX = params[0] - 4 * params[1];
+      maxX = params[0] + 4 * params[1];
+      break;
+    case "uniform":
+      minX = params[0] - 0.5;
+      maxX = params[1] + 0.5;
+      break;
+    case "exponential":
+      minX = 0;
+      maxX = Math.max(6 / params[0], 10);
+      break;
+    case "beta":
+      minX = -0.1;
+      maxX = 1.1;
+      break;
+    default:
+      minX = -5;
+      maxX = 5;
+  }
+  
+  const step = (maxX - minX) / (points - 1);
+  const xs = [];
+  for(let i = 0; i < points; i++) {
+    xs.push(minX + i * step);
+  }
+  return xs;
+}
+
+function updatePlot() {
+  // Generate x values across the combined range
+  const xRangeX = generateXRange(distX);
+  const xRangeY = generateXRange(distY);
+  const minX = Math.min(xRangeX[0], xRangeY[0]);
+  const maxX = Math.max(xRangeX[xRangeX.length-1], xRangeY[xRangeY.length-1]);
+  
+  const xs = [];
+  for(let i = 0; i < 300; i++) {
+    xs.push(minX + (maxX - minX) * i / 299);
+  }
+  
+  // Create traces for each distribution
+  let traceX = {
+    x: xs,
+    y: xs.map(x => distX.pdf(x)),
+    mode: 'lines',
+    name: 'X',
+    line: {color: '#0af'},
+    hovertemplate: '%{y:.2f}'
+  };
+  let traceY = {
+    x: xs,
+    y: xs.map(x => distY.pdf(x)),
+    mode: 'lines',
+    name: 'Y',
+    line: {color: '#fa0'},
+    hovertemplate: '%{y:.2f}'
+  };
+  let layout = {
+    plot_bgcolor: '#111',
+    paper_bgcolor: '#111',
+    font: {color: '#eee'},
+    margin: {t:30, b:40, l:50, r:30},
+    yaxis: {title: 'PDF'},
+    xaxis: {
+      title: '',
+      fixedrange: true,
+      hoverformat: '.2f'  // This formats the x-axis hover to 2 decimals
+    },
+    showlegend: true,
+    legend: {font: {color: '#eee'}},
+  };
+
+  Plotly.newPlot('plot', [traceX, traceY], layout, {displayModeBar:false});
+}
+
+function onSubmit() {
+  let guess = Number(guessSlider.value);
+  let trueProb = calcTrueProbability(currentLeftExpr, currentRightExpr);
+  let error = Math.abs(guess - trueProb);
+  let percentError = (error * 100).toFixed(1);
+  
+  gameStats.totalQuestions++;
+  gameStats.totalError += error;
+  if (error < gameStats.bestError) {
+    gameStats.bestError = error;
+  }
+  
+  resultDiv.innerHTML = `
+    <strong>True P(Left > Right) ≈ ${trueProb.toFixed(3)}</strong><br>
+    Your error: ${percentError}% ${error < 0.05 ? '🎯' : error < 0.1 ? '👍' : error < 0.2 ? '👌' : '💪'}
+  `;
+  
+  guessSlider.disabled = true;
+  submitBtn.style.display = "none";
+  nextBtn.style.display = "inline-block";
+  updateStats();
+}
+
+function randomDistribution() {
+  const distDef = distTypes[Math.floor(Math.random() * distTypes.length)];
+  return new Distribution(distDef);
+}
+
+function generateExpressionsForTargetP(p, iterations=50) {
+    let best = null;
+    let bestErr = Infinity;
+    for (let i = 0; i < iterations; i++) {
+        let distX = randomDistribution();
+        let distY = randomDistribution();
+        distX.distId = 'X';
+        distY.distId = 'Y';
+        // Generate expressions using only these two distributions
+        let leftExpr = generateExpression(gameStats.currentMode, distX);
+        let rightExpr = generateExpression(gameStats.currentMode, distY);
+        let currentP = calcTrueProbability(leftExpr, rightExpr, N=1000)
+        let err = Math.abs(p - currentP);
+        console.log(`currentP:${currentP}, p:${p}`)
+        if (err < bestErr) {
+            best = {distX, distY, leftExpr, rightExpr}
+            bestErr = err
+        }
+    }
+    return best
+}
+function nextQuestion() {
+  // Create two random distributions
+  targetP = Math.random();
+  expressionGeneration = generateExpressionsForTargetP(targetP);
+
+  distX = expressionGeneration.distX;
+  distY = expressionGeneration.distY;
+  currentLeftExpr = expressionGeneration.leftExpr;
+  currentRightExpr = expressionGeneration.rightExpr;
+  
+  // Assign sample IDs (x1, x2, y1, y2, etc.)
+  const leftNodes = currentLeftExpr.assignSampleIds();
+  const rightNodes = currentRightExpr.assignSampleIds(leftNodes.xNodes, leftNodes.yNodes);
+  
+  // Update the distribution info text
+  const xNodes = [...leftNodes.xNodes, ...rightNodes.xNodes];
+  const yNodes = [...leftNodes.yNodes, ...rightNodes.yNodes];
+//   if (xNodes.length == 0) {
+//     let changedNode = yNodes.pop();
+//     changedNode.sampleId = 1;
+//     changedNode.children[0] = distX;
+//     xNodes.push(changedNode);
+//   }
+//   if (yNodes.length == 0) {
+//     let changedNode = xNodes.pop();
+//     changedNode.sampleId = 1;
+//     changedNode.children[0] = distX;
+//     yNodes.push(changedNode);
+//   }
+
+  let xOut = [];
+  for (let i = 0; i < xNodes.length; i++) { xOut.push(`X<sub>${i + 1}</sub>`); }
+  let yOut = [];
+  for (let i = 0; i < yNodes.length; i++) { yOut.push(`Y<sub>${i + 1}</sub>`); }
+  
+  document.querySelector('.dist-info span.x').innerHTML = 
+    xOut.join(', ');
+  document.querySelector('.dist-info span.y').innerHTML = 
+    yOut.join(', ');
+  
+  leftExprSpan.innerHTML = currentLeftExpr.toString();
+  rightExprSpan.innerHTML = currentRightExpr.toString();
+  
+  // Update difficulty badge
+  const badges = {
+    easy: { class: 'diff-easy', text: 'Easy' },
+    medium: { class: 'diff-medium', text: 'Medium' },
+    hard: { class: 'diff-hard', text: 'Hard' },
+    expert: { class: 'diff-expert', text: 'Expert' }
+  };
+  
+  const badge = badges[gameStats.currentMode];
+  difficultyBadge.className = 'difficulty-indicator ' + badge.class;
+  difficultyBadge.textContent = badge.text;
+  
+  guessSlider.value = 0.5;
+  updateGuessLabel();
+  resultDiv.textContent = "";
+  submitBtn.style.display = "inline-block";
+  nextBtn.style.display = "none";
+  guessSlider.disabled = false;
+  
+  // Update plot
+  updatePlot();
+}
+
+// Event listeners
+guessSlider.addEventListener('input', updateGuessLabel);
+submitBtn.addEventListener('click', onSubmit);
+nextBtn.addEventListener('click', nextQuestion);
+
+// Initialize with mode from URL
+window.addEventListener('load', () => {
+  resetModeFromURL();
+  nextQuestion();
+  updateStats();
+});
+
+// Handle back/forward navigation
+window.addEventListener('popstate', () => {
+    resetModeFromURL();
+    nextQuestion();
+    updateStats();
+});
+</script>
+
+</body>
+</html>
