@@ -107,7 +107,7 @@
   
   .mode-btn.active {
     background-color: var(--highlight-color);
-    color: var(--body-background);
+    color: var(--text-on-highlight);
     cursor: default;
   }
   .mode-btn.active:hover {
@@ -242,7 +242,6 @@ input[type="range"]::-moz-range-thumb {
     padding: 10px;
     border-radius: 5px;
     background-color: var(--double-container-background);
-    min-height: 50px;
   }
   
   .stats {
@@ -320,8 +319,8 @@ input[type="range"]::-moz-range-thumb {
       <span id="difficulty-badge" class="difficulty-indicator diff-easy">Easy</span>
     </div>
     <div class="dist-info" id="dist-info">
-      <span class="x">X<sub>1</sub>, X<sub>2</sub>, ...</span> are samples from Distribution X (blue)<br>
-      <span class="y">Y<sub>1</sub>, Y<sub>2</sub>, ...</span> are samples from Distribution Y (orange)
+      <span class="x">X<sub>1</sub>, X<sub>2</sub>, ...</span> <span id="areisaX">are</span> from <span class="x">X</span> and
+      <span class="y">Y<sub>1</sub>, Y<sub>2</sub>, ...</span> <span id="areisaY">are</span> from <span class="y">Y</span>
     </div>
   </div>
 
@@ -369,7 +368,6 @@ let defaultGameStats = {
   currentMode: 'easy'
 };
 let gameStats = { ...defaultGameStats }; // a copy
-
 // Analytic PDFs
 function normalPDF(x, mu, sigma) {
   let coeff = 1 / (sigma * Math.sqrt(2 * Math.PI));
@@ -801,6 +799,8 @@ const leftExprSpan = document.getElementById("left-expr");
 const rightExprSpan = document.getElementById("right-expr");
 const difficultyBadge = document.getElementById("difficulty-badge");
 const distInfoDiv = document.getElementById("dist-info");
+const areisaX = document.getElementById("areisaX")
+const areisaY = document.getElementById("areisaY")
 
 function updateSliderGradient() {
   const val = guessSlider.value;
@@ -821,6 +821,7 @@ function resetModeFromURL() {
     if (URLMode == gameStats.currentMode) { return; }
     gameStats = { ...defaultGameStats};
     gameStats.currentMode = URLMode;
+    updateStats();
     // Update active mode button
     document.querySelectorAll('.mode-btn').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.mode === gameStats.currentMode);
@@ -911,7 +912,7 @@ function updatePlot() {
     x: xs,
     y: xs.map(x => distX.pdf(x)),
     mode: 'lines',
-    name: 'X',
+    name: '<span style="color:#0af">X</span>',
     line: {color: '#0af'},
     hovertemplate: '%{y:.2f}'
   };
@@ -919,15 +920,16 @@ function updatePlot() {
     x: xs,
     y: xs.map(x => distY.pdf(x)),
     mode: 'lines',
-    name: 'Y',
+    name: '<span style="color:#ff6b35">Y</span>',
     line: {color: '#ff6b35'},
     hovertemplate: '%{y:.2f}'
   };
   let layout = {
+    height: 300,
     plot_bgcolor: '#111',
     paper_bgcolor: '#111',
     font: {color: '#eee'},
-    margin: {t:30, b:40, l:50, r:30},
+    margin: {t:15, b:25, l:60, r:40},
     yaxis: {title: 'PDF'},
     xaxis: {
       title: '',
@@ -935,7 +937,9 @@ function updatePlot() {
       hoverformat: '.2f'  // This formats the x-axis hover to 2 decimals
     },
     showlegend: true,
-    legend: {font: {color: '#eee'}},
+    legend: {
+      itemsizing: 'constant'
+    },
   };
 
   Plotly.newPlot('plot', [traceX, traceY], layout, {displayModeBar:false});
@@ -957,6 +961,7 @@ function onSubmit() {
     <strong>True P(Left > Right) ≈ ${trueProb.toFixed(3)}</strong><br>
     Your error: ${percentError} ${error < 0.05 ? '🎯' : error < 0.1 ? '👍' : error < 0.2 ? '👌' : '💪'}
   `;
+  resultDiv.style.display = 'block'
   
   guessSlider.disabled = true;
   submitBtn.style.display = "none";
@@ -1031,6 +1036,11 @@ function nextQuestion() {
   
   leftExprSpan.innerHTML = currentLeftExpr.toString();
   rightExprSpan.innerHTML = currentRightExpr.toString();
+
+  if (xNodes.length == 1) { areisaX.innerHTML = "is a sample"; }
+  else { areisaX.innerHTML = "are samples"}
+  if (yNodes.length == 1) { areisaY.innerHTML = "is a sample"; }
+  else { areisaY.innerHTML = "are samples"}
   
   // Update difficulty badge
   const badges = {
@@ -1050,6 +1060,7 @@ function nextQuestion() {
   resultDiv.textContent = "";
   submitBtn.style.display = "inline-block";
   nextBtn.style.display = "none";
+  resultDiv.style.display = "none";
   guessSlider.disabled = false;
   
   // Update plot
