@@ -595,7 +595,7 @@ class ExpressionNode {
         return Math.abs(this.children[0].sample());
       case 'sqrt':
         return Math.sqrt(Math.abs(this.children[0].sample()));
-      case 'log':
+      case 'lnabs':
         let logVal = Math.abs(this.children[0].sample()) + 0.001;
         return Math.log(logVal);
       case 'exp':
@@ -617,57 +617,76 @@ class ExpressionNode {
   }
 
   toString() {
-    const mustParenthesize = this.parent && ['add', 'sub', 'mul', 'div', 'sqrt', 'square', 'cube'].includes(this.parent.type);
+    const mustParenthesize = this.parent && (
+      (['add', 'sub', 'mul', 'div'].includes(this.type) && 
+        ['add', 'sub', 'mul', 'div', 'sqrt', 'square', 'cube'].includes(this.parent.type)
+      ) ||
+      (['square', 'cube'].includes(this.type) && 
+        ['square', 'cube'].includes(this.parent.type)
+      ));
+    let out = "";
     switch(this.type) {
-      case 'dist':{
+      case 'dist':
         const distId = this.children[0].distId;
         const distLower = distId.toLowerCase();
-        return `<span class="${distLower}">${distId}<sub>${this.sampleId || ''}</sub></span>`;}
-      case 'add':{
-        let out = `${this.children[0].toString()} + ${this.children[1].toString()}`;
-        if (mustParenthesize) { out = `(${out})`; }
-        return out;}
-      case 'sub':{
-        let out =  `${this.children[0].toString()} - ${this.children[1].toString()}`;
-        if (mustParenthesize) { out = `(${out})`; }
-        return out;}
-      case 'mul':{
-        let out = `${this.children[0].toString()} × ${this.children[1].toString()}`;
-        if (mustParenthesize) { out = `(${out})`; }
-        return out;}
-      case 'div':{
-        let out = `${this.children[0].toString()} ÷ ${this.children[1].toString()}`;
-        if (mustParenthesize) { out = `(${out})`; }
-        return out;}
+        out = `<span class="${distLower}">${distId}<sub>${this.sampleId || ''}</sub></span>`;
+        break;
+      case 'add':
+        out = `${this.children[0].toString()} + ${this.children[1].toString()}`;
+        break;
+      case 'sub':
+        out = `${this.children[0].toString()} - ${this.children[1].toString()}`;
+        break;
+      case 'mul':
+        out = `${this.children[0].toString()} × ${this.children[1].toString()}`;
+        break;
+      case 'div':
+        out = `${this.children[0].toString()} ÷ ${this.children[1].toString()}`;
+        break;
       case 'min':
-        return `min(${this.children[0].toString()}, ${this.children[1].toString()})`;
+        out = `min(${this.children[0].toString()}, ${this.children[1].toString()})`;
+        break;
       case 'max':
-        return `max(${this.children[0].toString()}, ${this.children[1].toString()})`;
+        out = `max(${this.children[0].toString()}, ${this.children[1].toString()})`;
+        break;
       case 'square':
-        return `${this.children[0].toString()}²`;
+        out = `${this.children[0].toString()}²`;
+        break;
       case 'cube':
-        return `${this.children[0].toString()}³`;
+        out = `${this.children[0].toString()}³`;
       case 'abs':
-        return `|${this.children[0].toString()}|`;
+        out = `|${this.children[0].toString()}|`;
+        break;
       case 'sqrt':
-        return `√${this.children[0].toString()}`;
-      case 'log':
-        return `log(${this.children[0].toString()})`;
+        out = `√${this.children[0].toString()}`;
+        break;
+      case 'lnabs':
+        out = `ln|${this.children[0].toString()}|`;
+        break;
       case 'exp':
-        return `exp(${this.children[0].toString()})`;
+        out = `exp(${this.children[0].toString()})`;
+        break;
       case 'sin':
-        return `sin(${this.children[0].toString()})`;
+        out = `sin(${this.children[0].toString()})`;
+        break;
       case 'cos':
-        return `cos(${this.children[0].toString()})`;
+        out = `cos(${this.children[0].toString()})`;
+        break;
       case 'min_of':
-        return `min(${this.children.map(c => c.toString()).join(', ')})`;
+        out = `min(${this.children.map(c => c.toString()).join(', ')})`;
+        break;
       case 'max_of':
-        return `max(${this.children.map(c => c.toString()).join(', ')})`;
+        out = `max(${this.children.map(c => c.toString()).join(', ')})`;
+        break;
       case 'median_of':
-        return `median(${this.children.map(c => c.toString()).join(', ')})`;
+        out = `median(${this.children.map(c => c.toString()).join(', ')})`;
+        break;
       default:
-        return '?';
+        out = '?';
+        break;
     }
+    if (mustParenthesize) { out = `(${out})`; }
+    return out;
   }
 
   // Assign sample IDs to all dist nodes
@@ -723,13 +742,13 @@ function generateExpression(mode, dist) {
       easy: ['add', 'sub', 'abs'],
       medium: ['add', 'sub', 'mul', 'min', 'max', 'square', 'abs'],
       hard: ['add', 'sub', 'mul', 'div', 'min', 'max', 'square', 'cube', 'abs', 'sqrt'],
-      expert: ['add', 'sub', 'mul', 'div', 'min', 'max', 'square', 'cube', 'abs', 'sqrt', 'log', 'exp', 'sin', 'cos', 'min_of', 'max_of', 'median_of']
+      expert: ['add', 'sub', 'mul', 'div', 'min', 'max', 'square', 'cube', 'abs', 'sqrt', 'lnabs', 'exp', 'sin', 'cos', 'min_of', 'max_of', 'median_of']
     };
     
     const op = randomChoice(operations[mode]);
     
     // Unary operations
-    if (['square', 'cube', 'abs', 'sqrt', 'log', 'exp', 'sin', 'cos'].includes(op)) {
+    if (['square', 'cube', 'abs', 'sqrt', 'lnabs', 'exp', 'sin', 'cos'].includes(op)) {
       return new ExpressionNode(op, generate(depth + 1));
     }
     
