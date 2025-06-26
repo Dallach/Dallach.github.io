@@ -3,13 +3,45 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Vibeability</title>
+<title>Guesstimate</title>
 <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 <style>
+  .diff-easy {
+    background-color: #4CAF50;
+    color: white;
+  }
+  
+  .diff-medium {
+    background-color: #FFC107;
+    color: black;
+  }
+  
+  .diff-hard {
+    background-color: #F44336;
+    color: white;
+  }
+  
+  .diff-expert {
+    background-color: #9C27B0;}
+  :root {
+    --X: #0af;
+    --Y: #ff6b35;
+    --triple-container-background: #4a4a4a;
+    --double-container-background: #3a3a3a;
+    --container-background: #2a2a2a;
+    --body-background: #1a1a1a;
+    --color-text: #eee;
+    --easy: #4CAF50;
+    --medium: #FFC107;
+    --hard: #F44336;
+    --expert: #9C27B0;
+    --highlight-color: var(--easy);
+    --text-on-highlight: var(--body-background);
+  }
   body {
     font-family: 'Arial', sans-serif;
-    background-color: #1a1a1a;
-    color: #eee;
+    background-color: var(--body-background);
+    color: var(--color-text);
     margin: 0;
     padding: 20px;
   }
@@ -17,7 +49,7 @@
   .container {
     max-width: 800px;
     margin: 0 auto;
-    background-color: #2a2a2a;
+    background-color: var(--container-background);
     padding: 10px;
     border-radius: 10px;
     box-shadow: 0 0 20px rgba(0,0,0,0.5);
@@ -25,43 +57,43 @@
   
   h1 {
     text-align: center;
-    color: #00d4ff;
+    color: var(--highlight-color);
+    margin: 0px;
   }
   .header {
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 10px;
-    margin-bottom: 20px;
+    margin-bottom: 10px;
     }
 
     @media (min-width: 600px) {
-    .header {
-        flex-direction: row;
-        justify-content: space-between;
-        align-items: center;
-    }
+      .header {
+          flex-direction: row;
+          justify-content: space-between;
+          align-items: center;
+      }
 
-    h1 {
-        text-align: left;
-        margin: 0;
-    }
+      h1 {
+          text-align: left;
+          margin: 0;
+      }
 
-    .mode-selector {
-        margin-bottom: 0;
-    }
+      .mode-selector {
+          margin-bottom: 0;
+      }
     }
 
   
   .mode-selector {
     display: flex;
     justify-content: center;
-    margin-bottom: 20px;
     gap: 10px;
   }
   
   .mode-btn {
-    background-color: #333;
+    background-color: var(--double-container-background);
     color: #eee;
     border: none;
     padding: 8px 15px;
@@ -70,20 +102,20 @@
     transition: all 0.3s;
   }
   .mode-btn:hover {
-    background-color: #444;
+    background-color: var(--triple-container-background);
   }
   
   .mode-btn.active {
-    background-color: #00d4ff;
-    color: #111;
+    background-color: var(--highlight-color);
+    color: var(--body-background);
     cursor: default;
   }
   .mode-btn.active:hover {
-    background-color: #00d4ff;
+    background-color: var(--highlight-color);
   }
   
   .expression-display {
-    background-color: #333;
+    background-color: var(--double-container-background);
     padding: 15px;
     border-radius: 5px;
     margin-bottom: 20px;
@@ -97,11 +129,11 @@
   }
   
   .x {
-    color: #00d4ff;
+    color: var(--X);
   }
   
   .y {
-    color: #ff6b35;
+    color: var(--Y);
   }
   
   .controls {
@@ -120,42 +152,78 @@
   
   .guess-value {
     font-weight: bold;
-    color: #00d4ff;
+    color: var(--highlight-color);
   }
 
   input[type="range"] {
-    width: 100%;
-    margin-top: 8px;
-    margin-bottom: 12px;
-    -webkit-appearance: none;
-    background: #222;
-    height: 25px;
-    border-radius: 6px;
-    border: none;
-    outline: none;
-  }
+  width: 100%;
+  margin-top: 8px;
+  margin-bottom: 12px;
+  -webkit-appearance: none;
+  height: 25px;
+  border-radius: 6px;
+  border: none;
+  outline: none;
+  background: linear-gradient(to right, var(--X) 0%, var(--X) 50%, var(--Y) 50%, var(--Y) 100%);
+  position: relative;
+}
 
-  input[type="range"]::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 18px;
-    height: 18px;
-    background: #08f;
-    cursor: pointer;
-    border-radius: 50%;
-  }
+/* Thumb */
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  background: var(--X);
+  cursor: pointer;
+  border-radius: 50%;
+  position: relative;
+  z-index: 2;
+  margin-top: -6px;
+}
 
-  input[type="range"]::-moz-range-thumb {
-    width: 18px;
-    height: 18px;
-    background: #08f;
-    cursor: pointer;
-    border-radius: 50%;
-  }
-  
+/* To fix Firefox */
+input[type="range"]::-moz-range-track {
+  background: linear-gradient(to right, var(--X) 0%, var(--X) 50%, var(--Y) 50%, var(--Y) 100%);
+  height: 25px;
+  border-radius: 6px;
+  border: none;
+}
+input[type="range"]::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  background: var(--X);
+  border-radius: 50%;
+  cursor: pointer;
+  border: none;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 1px;
+  height: 25px;
+  background: var(--color-text);
+  cursor: pointer;
+  border-radius: 0;
+  margin-top: 0;
+  position: relative;
+  z-index: 2;
+  border: none;
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: 20px;
+  height: 100%;
+  background: black;
+  cursor: pointer;
+  border-radius: 0;
+  border: none;
+}
+/* To dynamically update the gradient as the slider moves, JavaScript is necessary to update the background */
+
   .btn {
-    background-color: #00d4ff;
-    color: #111;
+    background-color: var(--highlight-color);
+    color: var(--text-on-highlight);
     border: none;
     padding: 10px 20px;
     border-radius: 5px;
@@ -166,14 +234,14 @@
   }
   
   .btn:hover {
-    background-color: #00b4d8;
+    background-color: var(--highlight-color);
   }
   
   #result {
     margin-top: 15px;
     padding: 10px;
     border-radius: 5px;
-    background-color: #333;
+    background-color: var(--double-container-background);
     min-height: 50px;
   }
   
@@ -185,7 +253,7 @@
   }
   
   .stat {
-    background-color: #333;
+    background-color: var(--double-container-background);
     padding: 10px 15px;
     border-radius: 5px;
     min-width: 80px;
@@ -194,7 +262,7 @@
   .stat-value {
     font-size: 1.5em;
     font-weight: bold;
-    color: #00d4ff;
+    color: var(--highlight-color);
   }
   
   .difficulty-indicator {
@@ -231,21 +299,13 @@
     font-size: 0.9em;
     color: #aaa;
   }
-  
-  .dist-info span {
-    color: #00d4ff;
-  }
-  
-  .dist-info span.y {
-    color: #ff6b35;
-  }
 </style>
 </head>
 <body>
 
 <div class="container">
     <div class="header">
-        <h1>Vibeability</h1>
+        <h1>Guesstimate</h1>
         <div class="mode-selector">
             <button class="mode-btn active" data-mode="easy">Easy</button>
             <button class="mode-btn" data-mode="medium">Medium</button>
@@ -294,7 +354,12 @@
     </div>
   </div>
 </div>
+<script>
 
+
+
+
+</script>
 <script>
 // Statistics tracking
 let defaultGameStats = {
@@ -718,10 +783,18 @@ const rightExprSpan = document.getElementById("right-expr");
 const difficultyBadge = document.getElementById("difficulty-badge");
 const distInfoDiv = document.getElementById("dist-info");
 
+function updateSliderGradient() {
+  const val = guessSlider.value;
+  guessSlider.style.background = `linear-gradient(to right, var(--X) 0%, var(--X) ${val * 100}%, var(--Y) ${val * 100}%, var(--Y) 100%)`;
+}
+guessSlider.addEventListener('input', updateSliderGradient);
+updateSliderGradient();
+
 // Get mode from URL or default to easy
 function getModeFromURL() {
   const params = new URLSearchParams(window.location.search);
-  return params.get('mode') || 'easy';
+  const paramMode = params.get('mode');
+  return paramMode && ['easy', 'medium', 'hard', 'expert'].includes(paramMode) ? paramMode : 'easy';
 }
 
 function resetModeFromURL() {
@@ -733,6 +806,9 @@ function resetModeFromURL() {
     document.querySelectorAll('.mode-btn').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.mode === gameStats.currentMode);
     });
+    document.documentElement.style.setProperty('--highlight-color', `var(--${URLMode})`);
+    textOnHighlight = URLMode == "medium" ? 'var(--body-background)' : 'var(--color-text)';
+    document.documentElement.style.setProperty('--text-on-highlight', textOnHighlight);
 }
 
 // Update URL with current mode
@@ -759,9 +835,9 @@ function updateGuessLabel() {
 function updateStats() {
   document.getElementById('total-questions').textContent = gameStats.totalQuestions;
   document.getElementById('avg-error').textContent = gameStats.totalQuestions > 0 ? 
-    ((gameStats.totalError / gameStats.totalQuestions) * 100).toFixed(1) + '%' : '0.0%';
+    (gameStats.totalError / gameStats.totalQuestions).toFixed(3) : '0.000';
   document.getElementById('best-error').textContent = gameStats.bestError === Infinity ? '-' : 
-    (gameStats.bestError * 100).toFixed(1) + '%';
+    gameStats.bestError.toFixed(3);
 }
 
 // Generate x range for analytical PDFs
@@ -825,7 +901,7 @@ function updatePlot() {
     y: xs.map(x => distY.pdf(x)),
     mode: 'lines',
     name: 'Y',
-    line: {color: '#fa0'},
+    line: {color: '#ff6b35'},
     hovertemplate: '%{y:.2f}'
   };
   let layout = {
@@ -850,7 +926,7 @@ function onSubmit() {
   let guess = Number(guessSlider.value);
   let trueProb = calcTrueProbability(currentLeftExpr, currentRightExpr);
   let error = Math.abs(guess - trueProb);
-  let percentError = (error * 100).toFixed(1);
+  let percentError = (error).toFixed(3);
   
   gameStats.totalQuestions++;
   gameStats.totalError += error;
@@ -860,7 +936,7 @@ function onSubmit() {
   
   resultDiv.innerHTML = `
     <strong>True P(Left > Right) ≈ ${trueProb.toFixed(3)}</strong><br>
-    Your error: ${percentError}% ${error < 0.05 ? '🎯' : error < 0.1 ? '👍' : error < 0.2 ? '👌' : '💪'}
+    Your error: ${percentError} ${error < 0.05 ? '🎯' : error < 0.1 ? '👍' : error < 0.2 ? '👌' : '💪'}
   `;
   
   guessSlider.disabled = true;
@@ -887,7 +963,6 @@ function generateExpressionsForTargetP(p, iterations=50) {
         let rightExpr = generateExpression(gameStats.currentMode, distY);
         let currentP = calcTrueProbability(leftExpr, rightExpr, N=1000)
         let err = Math.abs(p - currentP);
-        console.log(`currentP:${currentP}, p:${p}`)
         if (err < bestErr) {
             best = {distX, distY, leftExpr, rightExpr}
             bestErr = err
@@ -951,6 +1026,7 @@ function nextQuestion() {
   difficultyBadge.textContent = badge.text;
   
   guessSlider.value = 0.5;
+  updateSliderGradient();
   updateGuessLabel();
   resultDiv.textContent = "";
   submitBtn.style.display = "inline-block";
