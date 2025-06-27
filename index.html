@@ -143,6 +143,10 @@
   .y {
     color: var(--Y);
   }
+
+  .js-plotly-plot .plotly .cursor-pointer {
+      cursor: default;
+  }
   
   .controls {
     margin-top: 20px;
@@ -978,12 +982,12 @@ function updatePlot() {
     hovertemplate: '%{y:.2f}'
   };
   let layout = {
-    height: 300,
+    height: 290,
     plot_bgcolor: '#111',
     paper_bgcolor: '#111',
     font: {color: '#eee'},
-    margin: {t:15, b:25, l:60, r:40},
-    yaxis: {title: 'PDF'},
+    margin: {t:15, b:30, l:60, r:40},
+    yaxis: {title: 'PDF', fixedrange:true},
     xaxis: {
       title: '',
       fixedrange: true,
