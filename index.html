@@ -643,8 +643,8 @@ class ExpressionNode {
 
   toString() {
     const mustParenthesize = this.parent && (
-      (['add', 'sub', 'mul', 'div'].includes(this.type) && 
-        ['add', 'sub', 'mul', 'div', 'sqrt', 'square', 'cube'].includes(this.parent.type)
+      ((['add', 'sub', 'mul', 'div'].includes(this.type) && 
+        ['add', 'sub', 'mul', 'div', 'square', 'cube'].includes(this.parent.type) && !(['add', 'mul'].includes(this.type) && this.type == this.parent.type))
       ) ||
       (['square', 'cube'].includes(this.type) && 
         ['square', 'cube'].includes(this.parent.type)
@@ -683,7 +683,7 @@ class ExpressionNode {
         out = `|${this.children[0].toString()}|`;
         break;
       case 'sqrt':
-        out = `√${this.children[0].toString()}`;
+        out = `√|${this.children[0].toString()}|`;
         break;
       case 'lnabs':
         out = `ln|${this.children[0].toString()}|`;
