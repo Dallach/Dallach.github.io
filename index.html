@@ -1,6 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="48x48" href="favicon-48x48.png">
+<link rel="icon" type="image/png" sizes="64x64" href="favicon-64x64.png">
+<link rel="icon" type="image/png" sizes="128x128" href="favicon-128x128.png">
+<link rel="icon" type="image/png" sizes="256x256" href="favicon-256x256.png">
+<link rel="shortcut icon" href="favicon.ico">
+<link rel="apple-touch-icon" sizes="180x180" href="favicon-256x256.png">
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Guesstimate</title>
@@ -154,6 +162,24 @@
     font-weight: bold;
     color: var(--highlight-color);
   }
+
+  #corr-input {
+  background-color: var(--double-container-background);
+  color: var(--color-text);
+  border: 2px solid var(--highlight-color);
+  border-radius: 5px;
+  padding: 2px 8px;
+  font-size: 1em;
+  width: 35px;
+  text-align: center;
+  outline: none;
+  transition: border 0.2s;
+}
+
+#corr-input:focus {
+  border-color: var(--X);
+  background-color: var(--container-background);
+}
 
   input[type="range"] {
   width: 100%;
@@ -329,8 +355,8 @@ input[type="range"]::-moz-range-thumb {
 
   <div class="controls">
     <div class="guess-container">
-      <label class="guess-label" for="guess">Your guess: <span class="guess-value" id="guess-value">0.50</span></label>
-      <input type="range" id="guess" min="0" max="1" step="0.005" value="0.5" />
+      <label class="guess-label" for="guess">Your guess: <input id="corr-input" type="text" inputmode="decimal" /></label>
+      <input type="range" id="guess" min="0" max="1" step="0.01" value="0.0" />
     </div>
     <div>
       <button class="btn" id="submit-btn">Submit</button>
@@ -792,7 +818,6 @@ let currentLeftExpr, currentRightExpr, distX, distY;
 
 // UI Elements
 const guessSlider = document.getElementById("guess");
-const guessValueLabel = document.getElementById("guess-value");
 const submitBtn = document.getElementById("submit-btn");
 const nextBtn = document.getElementById("next-btn");
 const resultDiv = document.getElementById("result");
@@ -800,15 +825,45 @@ const leftExprSpan = document.getElementById("left-expr");
 const rightExprSpan = document.getElementById("right-expr");
 const difficultyBadge = document.getElementById("difficulty-badge");
 const distInfoDiv = document.getElementById("dist-info");
-const areisaX = document.getElementById("areisaX")
-const areisaY = document.getElementById("areisaY")
+const areisaX = document.getElementById("areisaX");
+const areisaY = document.getElementById("areisaY");
+const guessTextInput = document.getElementById('corr-input');
+guessTextInput.value = '0.';
+
+guessTextInput.addEventListener('beforeguessTextInput', (e) => {
+  if (guessTextInput.selectionStart <= 2 && e.guessTextInputType.startsWith('delete') === false) {
+    e.preventDefault();
+    guessTextInput.setSelectionRange(guessTextInput.value.length, guessTextInput.value.length);
+  }
+});
+
+guessTextInput.addEventListener('input', () => {
+  if (!guessTextInput.value.startsWith('0.')) {
+    let digits = guessTextInput.value.replace(/[^0-9]/g, '');
+    if (digits && digits.length >= 1 && digits[0] == '0') {
+      digits.slice(1)
+    }
+    guessTextInput.value = '0.' + digits;
+  }
+});
 
 function updateSliderGradient() {
   const val = guessSlider.value;
   guessSlider.style.background = `linear-gradient(to right, var(--X) 0%, var(--X) ${val * 100}%, var(--Y) ${val * 100}%, var(--Y) 100%)`;
 }
+function updateTextInputFromSlider() {
+  const value = parseFloat(guessSlider.value).toFixed(2); // adjust precision as needed
+  guessTextInput.value = '0.' + value.split('.')[1];
+}
+function updateSliderFromTextInput() {
+  const value = parseFloat(guessTextInput.value).toFixed(2); // adjust precision as needed
+  console.log(`value: ${value}`);
+  guessSlider.value = value;
+  updateSliderGradient();
+}
 guessSlider.addEventListener('input', updateSliderGradient);
-updateSliderGradient();
+guessSlider.addEventListener('input', updateTextInputFromSlider);
+guessTextInput.addEventListener('input', updateSliderFromTextInput);
 
 // Get mode from URL or default to easy
 function getModeFromURL() {
@@ -848,10 +903,6 @@ document.querySelectorAll('.mode-btn').forEach(btn => {
     nextQuestion();
   });
 });
-
-function updateGuessLabel() {
-  guessValueLabel.textContent = Number(guessSlider.value).toFixed(2);
-}
 
 function updateStats() {
   document.getElementById('total-questions').textContent = gameStats.totalQuestions;
@@ -965,6 +1016,7 @@ function onSubmit() {
   resultDiv.style.display = 'block'
   
   guessSlider.disabled = true;
+  guessTextInput.disabled = true;
   submitBtn.style.display = "none";
   nextBtn.style.display = "inline-block";
   updateStats();
@@ -1055,21 +1107,22 @@ function nextQuestion() {
   difficultyBadge.className = 'difficulty-indicator ' + badge.class;
   difficultyBadge.textContent = badge.text;
   
-  guessSlider.value = 0.5;
+  guessSlider.value = 0.0;
+  updateTextInputFromSlider();
   updateSliderGradient();
-  updateGuessLabel();
   resultDiv.textContent = "";
   submitBtn.style.display = "inline-block";
   nextBtn.style.display = "none";
   resultDiv.style.display = "none";
   guessSlider.disabled = false;
+  guessTextInput.disabled = false;
   
   // Update plot
   updatePlot();
 }
 
 // Event listeners
-guessSlider.addEventListener('input', updateGuessLabel);
+guessSlider.addEventListener('input', updateTextInputFromSlider());
 submitBtn.addEventListener('click', onSubmit);
 nextBtn.addEventListener('click', nextQuestion);
 
