@@ -142,12 +142,12 @@
   }
   
   .guess-container {
-    margin-bottom: 15px;
+    margin-bottom: 5px;
   }
   
   .guess-label {
     display: block;
-    margin-bottom: 5px;
+    margin-bottom: 0px;
   }
   
   .guess-value {
@@ -158,7 +158,7 @@
   input[type="range"] {
   width: 100%;
   margin-top: 8px;
-  margin-bottom: 12px;
+  margin-bottom: 0px;
   -webkit-appearance: none;
   height: 25px;
   border-radius: 6px;
@@ -248,7 +248,7 @@ input[type="range"]::-moz-range-thumb {
   .stats {
     display: flex;
     justify-content: space-around;
-    margin-top: 30px;
+    margin-top: 10px;
     text-align: center;
   }
   
@@ -738,10 +738,10 @@ function generateExpression(mode, dist) {
     }
     
     const operations = {
-      easy: ['add', 'sub', 'abs'],
-      medium: ['add', 'sub', 'mul', 'min', 'max', 'square', 'abs'],
-      hard: ['add', 'sub', 'mul', 'div', 'min', 'max', 'square', 'cube', 'abs', 'sqrt'],
-      expert: ['add', 'sub', 'mul', 'div', 'min', 'max', 'square', 'cube', 'abs', 'sqrt', 'lnabs', 'exp', 'sin', 'cos', 'min_of', 'max_of', 'median_of']
+      easy: ['add', 'sub'],
+      medium: ['add', 'sub', 'mul', 'min', 'max', 'square'],
+      hard: ['add', 'sub', 'mul', 'div', 'min', 'max', 'square', 'cube', 'sqrt'],
+      expert: ['add', 'sub', 'mul', 'div', 'min', 'max', 'square', 'cube', 'sqrt', 'lnabs', 'exp', 'sin', 'cos', 'min_of', 'max_of', 'median_of']
     };
     
     const op = randomChoice(operations[mode]);
