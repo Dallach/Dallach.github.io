@@ -1132,7 +1132,6 @@ function onSubmit() {
 
   answerSpan.innerHTML = `${trueProb.toFixed(2)}`;
   resultDiv.innerHTML = `
-    <strong>True P(Left > Right) ≈ ${trueProb.toFixed(2)}</strong><br>
     Your error: ${percentError} ${error < 0.05 ? '🎯' : error < 0.1 ? '👍' : error < 0.2 ? '👌' : '💪'}
   `;
   resultDiv.style.display = 'block'
