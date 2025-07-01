@@ -363,11 +363,11 @@ input[type="range"]::-moz-range-thumb {
   <div class="controls">
     <div class="guess-container">
       <label class="guess-label" for="guess">Your guess: <input id="corr-input" type="text" inputmode="decimal" /></label>
-      <input type="range" id="guess" min="0" max="1" step="0.01" value="0.0" />
+      <input type="range" id="guess" min="0" max="1" step="0.01" value="0.0" tabindex="-1"/>
     </div>
     <div>
-      <button class="btn" id="submit-btn">Submit</button>
       <button class="btn" id="next-btn" style="display:none;">Next</button>
+      <button class="btn" id="submit-btn">Submit</button>
     </div>
     <div id="result"></div>
   </div>
@@ -1079,8 +1079,10 @@ function onSubmit() {
   
   guessSlider.disabled = true;
   guessTextInput.disabled = true;
-  submitBtn.style.display = "none";
+  guessTextInput.tabIndex = -1
   nextBtn.style.display = "inline-block";
+  submitBtn.style.display = "none";
+  if (wasSubmitButtonFocusedBeforeClick) { nextBtn.focus(); }
   updateStats();
 }
 
@@ -1178,7 +1180,11 @@ function nextQuestion() {
   resultDiv.style.display = "none";
   guessSlider.disabled = false;
   guessTextInput.disabled = false;
-  
+  guessTextInput.tabIndex = 0;
+  if (wasNextButtonFocusedBeforeClick) {
+    guessTextInput.focus(); 
+    guessTextInput.value = '0.'
+  }
   // Update plot
   updatePlot();
 }
@@ -1188,6 +1194,28 @@ guessSlider.addEventListener('input', updateTextInputFromSlider());
 submitBtn.addEventListener('click', onSubmit);
 nextBtn.addEventListener('click', nextQuestion);
 
+let wasNextButtonFocusedBeforeClick = false;
+let wasSubmitButtonFocusedBeforeClick = false;
+function checkFocusBeforeClick(e) {
+    const focusedElement = document.activeElement;
+    wasNextButtonFocusedBeforeClick = focusedElement === nextBtn;
+    wasSubmitButtonFocusedBeforeClick = focusedElement == submitBtn;
+    return wasFocused;
+}
+submitBtn.addEventListener('mousedown', checkFocusBeforeClick);
+submitBtn.addEventListener('keydown', checkFocusBeforeClick); 
+submitBtn.addEventListener('touchstart', checkFocusBeforeClick);
+nextBtn.addEventListener('mousedown', checkFocusBeforeClick);
+nextBtn.addEventListener('keydown', checkFocusBeforeClick); 
+nextBtn.addEventListener('touchstart', checkFocusBeforeClick);
+
+guessTextInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    onSubmit();
+    nextBtn.focus();
+  }
+});
 // Initialize with mode from URL
 window.addEventListener('load', () => {
   resetModeFromURL();
