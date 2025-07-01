@@ -503,7 +503,6 @@ class Distribution {
     this.pdfWithParams = distDef.pdf;
     this.sampleFunc = distDef.sample;
     this.params = distDef.randomParams();
-    this.paramBounds = distDef.paramBounds;
   }
 
   sample() {
@@ -527,10 +526,12 @@ class Distribution {
       case 'uniform':
         return `U(${this.params[0].toFixed(1)}, ${this.params[1].toFixed(1)})`;
       case 'exponential':
-        return `Exp(${this.params[0].toFixed(2)})`;
+        return `Exp(${this.params[0].toFixed(2)}, offset=${this.params[1].toFixed(2)}, negative=${this.params[2]})`;
       case 'beta':
-        return `Beta(${this.params[0].toFixed(1)}, ${this.params[1].toFixed(1)})`;
-      default:
+        return `Beta(${this.params[0].toFixed(1)}, ${this.params[1].toFixed(1)}, ${this.params[2].toFixed(1)}, ${this.params[3].toFixed(1)})`;
+      case 'triangular':
+        return `Triangle(${this.params[0].toFixed(2)}, ${this.params[1].toFixed(2)}, ${this.params[2].toFixed(2)})`
+        default:
         return this.name;
     }
   }
@@ -547,7 +548,6 @@ const distTypes = [
       let sigma = 0.5 + Math.random() * 1.5;
       return [mu, sigma];
     },
-    paramBounds: [[-5,5],[0.4,2.4]],
     sample: (p) => {
       let u1 = Math.random(), u2 = Math.random();
       let z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
@@ -563,28 +563,52 @@ const distTypes = [
       let width = 1 + Math.random() * 6;
       return [a, a + width];
     },
-    paramBounds: [[-5,5],[-4,15]],
     sample: (p) => p[0] + (p[1]-p[0]) * Math.random()
   },
   {
     name: "exponential",
-    paramCount: 1,
-    pdf: (x, p) => exponentialPDF(x, p[0]),
-    randomParams: () => [0.3 + Math.random() * 0.8],
-    paramBounds: [[0.3,1.1]],
-    sample: (p) => -Math.log(1 - Math.random()) / p[0]
+    paramCount: 3,
+    pdf: (x, p) => exponentialPDF((p[2] ? -1 : 1)  * (x - p[1]), p[0]),
+    randomParams: () => [0.3 + Math.random() * 0.8, (Math.random() - 0.5) * 6, Math.random() > 0.5],
+    sample: (p) => (p[2] ? -1 : 1) * (-1 * (Math.log(1 - Math.random()) / p[0])) + p[1]
   },
   {
     name: "beta",
-    paramCount: 2,
-    pdf: (x,p) => betaPDF(x, p[0], p[1]),
+    paramCount: 4,
+    pdf: (x,p) => betaPDF((x - p[2]) / p[3] + 0.5, p[0], p[1]) / p[3],
     randomParams: () => {
       let α = 1 + Math.random() * 2.5;
       let β = 1 + Math.random() * 2.5;
-      return [α, β];
+      let offset = (Math.random() - 0.5) * 6;
+      let width = Math.random() * 3 + 1;
+      return [α, β, offset, width];
     },
-    paramBounds: [[1,3.5],[1,3.5]],
-    sample: (p) => betaSample(p[0], p[1])
+    sample: (p) => p[2] + (betaSample(p[0], p[1]) - 0.5) * p[3]
+  },
+  {
+    name: "triangular",
+    paramCount: 3,
+    pdf: (x,p) => {
+      let [a,b,c] = p;
+      if(x < a || x > c) return 0;
+      if(x < b) return 2*(x - a)/((c - a)*(b - a));
+      return 2*(c - x)/((c - a)*(c - b));
+    },
+    randomParams: () => {
+        let a = (Math.random() - 0.5) * 10;
+        let width = 2 + Math.random() * 6;
+        let c = a + width;
+        let b = a + Math.random() * width;
+        return [a, b, c];
+    },
+    paramBounds: [[-5,5],[-3,13],[-5,13]],
+    sample: (p) => {
+      let [a,b,c] = p;
+      let u = Math.random();
+      let F = (b - a)/(c - a);
+      if(u < F) return a + Math.sqrt(u * (b - a) * (c - a));
+      return c - Math.sqrt((1 - u) * (c - b) * (c - a));
+    }
   }
 ];
 
@@ -650,8 +674,11 @@ class ExpressionNode {
 
   toString() {
     const mustParenthesize = this.parent && (
-      ((['add', 'sub', 'mul', 'div'].includes(this.type) && 
-        ['add', 'sub', 'mul', 'div', 'square', 'cube'].includes(this.parent.type) && !(['add', 'mul'].includes(this.type) && this.type == this.parent.type))
+      (['add', 'sub', 'mul', 'div'].includes(this.type) && 
+        ['add', 'sub', 'mul', 'div', 'square', 'cube'].includes(this.parent.type) && 
+        !(['add', 'mul'].includes(this.type) && this.type == this.parent.type) &&
+        !(['sub'].includes(this.type) && ['add'].includes(parent.type)) &&
+        !(['mul', 'div'].includes(this.type) && ['add', 'sub'].includes(parent.type))
       ) ||
       (['square', 'cube'].includes(this.type) && 
         ['square', 'cube'].includes(this.parent.type)
@@ -676,10 +703,18 @@ class ExpressionNode {
         out = `${this.children[0].toString()} ÷ ${this.children[1].toString()}`;
         break;
       case 'min':
-        out = `min(${this.children[0].toString()}, ${this.children[1].toString()})`;
+        if (this.parent && this.type == this.parent.type) {
+          out = `${this.children.map(c => c.toString()).join(', ')}`;
+        } else {
+          out = `min(${this.children.map(c => c.toString()).join(', ')})`;
+        }
         break;
       case 'max':
-        out = `max(${this.children[0].toString()}, ${this.children[1].toString()})`;
+        if (this.parent && this.type == this.parent.type) {
+          out = `${this.children.map(c => c.toString()).join(', ')}`;
+        } else {
+          out = `max(${this.children.map(c => c.toString()).join(', ')})`;
+        }
         break;
       case 'square':
         out = `${this.children[0].toString()}²`;
@@ -706,10 +741,18 @@ class ExpressionNode {
         out = `cos(${this.children[0].toString()})`;
         break;
       case 'min_of':
-        out = `min(${this.children.map(c => c.toString()).join(', ')})`;
+        if (this.parent && this.type == this.parent.type) {
+          out = `${this.children.map(c => c.toString()).join(', ')}`;
+        } else {
+          out = `min(${this.children.map(c => c.toString()).join(', ')})`;
+        }
         break;
       case 'max_of':
-        out = `max(${this.children.map(c => c.toString()).join(', ')})`;
+      if (this.parent && this.type == this.parent.type) {
+          out = `${this.children.map(c => c.toString()).join(', ')}`;
+        } else {
+          out = `max(${this.children.map(c => c.toString()).join(', ')})`;
+        }
         break;
       case 'median_of':
         out = `median(${this.children.map(c => c.toString()).join(', ')})`;
@@ -775,7 +818,7 @@ function generateExpression(mode, dist) {
       easy: ['add', 'sub'],
       medium: ['add', 'sub', 'mul', 'min', 'max', 'square'],
       hard: ['add', 'sub', 'mul', 'div', 'min', 'max', 'square', 'cube', 'sqrt'],
-      expert: ['add', 'sub', 'mul', 'div', 'min', 'max', 'square', 'cube', 'sqrt', 'lnabs', 'exp', 'sin', 'cos', 'min_of', 'max_of', 'median_of']
+      expert: ['add', 'sub', 'mul', 'div', 'min', 'max', 'square', 'cube', 'sqrt', 'lnabs', 'exp', 'sin', 'cos', 'median_of'] //, 'min_of', 'max_of'
     };
     
     const op = randomChoice(operations[mode]);
@@ -792,7 +835,7 @@ function generateExpression(mode, dist) {
     
     // Multi-argument operations
     if (['min_of', 'max_of', 'median_of'].includes(op)) {
-      const count = 2 + Math.floor(Math.random() * 2); // 2-3 args
+      const count = 3; // 2 + Math.floor(Math.random() * 2); // 2-3 args
       const args = Array(count).fill().map(() => generate(depth + 1));
       return new ExpressionNode(op, ...args);
     }
@@ -935,12 +978,23 @@ function generateXRange(dist, points = 300) {
       maxX = params[1] + 0.5;
       break;
     case "exponential":
-      minX = 0;
+      minX = -0.1 + (params[2] ? -1 : 1) * params[1];
       maxX = Math.max(6 / params[0], 10);
+      if (params[2]) {
+        temp = maxX;
+        maxX = - minX;
+        minX = -temp;
+      }
       break;
     case "beta":
-      minX = -0.1;
-      maxX = 1.1;
+      minX = -0.1 + params[2] - 0.5 * params[3];
+      maxX = 0.1 + params[2] + 0.5 * params[3];
+      break;
+    case "triangular":
+      minX = params[0] - 0.5;
+      maxX = params[2] + 0.5;
+      console.log("dist: " + dist);
+      console.log(`minX: ${minX}, maxX: ${maxX}`);
       break;
     default:
       minX = -5;
@@ -1009,7 +1063,7 @@ function onSubmit() {
   let guess = Number(guessSlider.value);
   let trueProb = calcTrueProbability(currentLeftExpr, currentRightExpr);
   let error = Math.abs(guess - trueProb);
-  let percentError = (error).toFixed(3);
+  let percentError = (error).toFixed(2);
   
   gameStats.totalQuestions++;
   gameStats.totalError += error;
@@ -1018,7 +1072,7 @@ function onSubmit() {
   }
   
   resultDiv.innerHTML = `
-    <strong>True P(Left > Right) ≈ ${trueProb.toFixed(3)}</strong><br>
+    <strong>True P(Left > Right) ≈ ${trueProb.toFixed(2)}</strong><br>
     Your error: ${percentError} ${error < 0.05 ? '🎯' : error < 0.1 ? '👍' : error < 0.2 ? '👌' : '💪'}
   `;
   resultDiv.style.display = 'block'
