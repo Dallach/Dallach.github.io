@@ -33,7 +33,9 @@
     background-color: #9C27B0;}
   :root {
     --X: #0af;
+    --X-error: #0f8ece;
     --Y: #ff6b35;
+    --Y-error: #ce5f36;
     --triple-container-background: #4a4a4a;
     --double-container-background: #3a3a3a;
     --container-background: #2a2a2a;
@@ -45,6 +47,9 @@
     --expert: #9C27B0;
     --highlight-color: var(--easy);
     --text-on-highlight: var(--body-background);
+    --error-good: #4CAF50;
+    --error-medium: #FFC107;
+    --error-bad: #F44336;
   }
   body {
     font-family: 'Arial', sans-serif;
@@ -157,6 +162,10 @@
   .guess-container {
     margin-bottom: 5px;
   }
+  .slider-container {
+    padding-top: 8px;
+    position: relative;
+  }
   
   .guess-label {
     display: block;
@@ -186,10 +195,26 @@
   background-color: var(--container-background);
 }
 
+.true-value-marker {
+    position: absolute;
+    bottom: 0px;
+    width: 3px;
+    height: 35px;
+    background: var(--color-text);
+    border-radius: 2px;
+    transform: translateX(-50%);
+    z-index: 2;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  .true-value-marker.visible {
+    opacity: 1;
+  }
+
   input[type="range"] {
   width: 100%;
-  margin-top: 8px;
-  margin-bottom: 0px;
+  margin: 0px;
   -webkit-appearance: none;
   height: 25px;
   border-radius: 6px;
@@ -199,19 +224,23 @@
   position: relative;
   cursor: pointer;
 }
+input[type="range"]:disabled {
+  cursor: default;
+}
 
 /* Thumb */
 input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 18px;
-  height: 18px;
-  background: var(--X);
+  width: 3px;
+  height: 25px;
+  background: var(--color-text);
   cursor: pointer;
-  border-radius: 50%;
+  border-radius: 0;
+  margin-top: 0;
   position: relative;
   z-index: 2;
-  margin-top: -6px;
+  border: none;
 }
 
 /* To fix Firefox */
@@ -229,19 +258,7 @@ input[type="range"]::-moz-range-thumb {
   cursor: pointer;
   border: none;
 }
-input[type="range"]::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 1px;
-  height: 25px;
-  background: var(--color-text);
-  cursor: pointer;
-  border-radius: 0;
-  margin-top: 0;
-  position: relative;
-  z-index: 2;
-  border: none;
-}
+
 
 input[type="range"]::-moz-range-thumb {
   width: 20px;
@@ -251,7 +268,6 @@ input[type="range"]::-moz-range-thumb {
   border-radius: 0;
   border: none;
 }
-/* To dynamically update the gradient as the slider moves, JavaScript is necessary to update the background */
 
   .btn {
     background-color: var(--highlight-color);
@@ -349,7 +365,7 @@ input[type="range"]::-moz-range-thumb {
 
   <div class="expression-display">
     <div class="expression">
-      P(<span class="expr-left" id="left-expr">X</span> > <span class="expr-right" id="right-expr">Y</span>) = ?
+      P(<span class="expr-left" id="left-expr">X</span> > <span class="expr-right" id="right-expr">Y</span>) = <span id="?">?</span>
       <span id="difficulty-badge" class="difficulty-indicator diff-easy">Easy</span>
     </div>
     <div class="dist-info" id="dist-info">
@@ -363,7 +379,10 @@ input[type="range"]::-moz-range-thumb {
   <div class="controls">
     <div class="guess-container">
       <label class="guess-label" for="guess">Your guess: <input id="corr-input" type="text" inputmode="decimal" /></label>
-      <input type="range" id="guess" min="0" max="1" step="0.01" value="0.0" tabindex="-1"/>
+      <div class="slider-container">
+        <input type="range" id="guess" min="0" max="1" step="0.01" value="0.0" tabindex="-1"/>
+        <div class="true-value-marker" id="true-value-marker"></div>
+      </div>
     </div>
     <div>
       <button class="btn" id="next-btn" style="display:none;">Next</button>
@@ -869,11 +888,13 @@ let currentLeftExpr, currentRightExpr, distX, distY;
 
 // UI Elements
 const guessSlider = document.getElementById("guess");
+const trueValueMarker = document.getElementById('true-value-marker');
 const submitBtn = document.getElementById("submit-btn");
 const nextBtn = document.getElementById("next-btn");
 const resultDiv = document.getElementById("result");
 const leftExprSpan = document.getElementById("left-expr");
 const rightExprSpan = document.getElementById("right-expr");
+const answerSpan = document.getElementById("?");
 const difficultyBadge = document.getElementById("difficulty-badge");
 const distInfoDiv = document.getElementById("dist-info");
 const areisaX = document.getElementById("areisaX");
@@ -898,9 +919,46 @@ guessTextInput.addEventListener('input', () => {
   }
 });
 
-function updateSliderGradient() {
+function updateSliderGradient(showError = false, trueValue = null) {
   const val = guessSlider.value;
-  guessSlider.style.background = `linear-gradient(to right, var(--X) 0%, var(--X) ${val * 100}%, var(--Y) ${val * 100}%, var(--Y) 100%)`;
+  if (showError && trueValue !== null) {
+      // Show true value marker
+      const truePercentage = trueValue * 100;
+      trueValueMarker.style.left = truePercentage + '%';
+      trueValueMarker.classList.add('visible');
+      
+      // Calculate error and set color gradient
+      const error = Math.abs(val - trueValue);
+      const errorPercentage = error * 100;
+      
+      let gradientColor;
+      if (errorPercentage < 5) {
+          gradientColor = 'var(--error-good)';
+      } else if (errorPercentage < 15) {
+          gradientColor = 'var(--error-medium)';
+      } else {
+          gradientColor = 'var(--error-bad)';
+      }
+      gradientColor = val < trueValue ? 'var(--X-error)' : 'var(--Y-error)'
+      
+      // Create error-based gradient
+      const userPos = val * 100;
+      const truePos = truePercentage;
+      const minPos = Math.min(userPos, truePos);
+      const maxPos = Math.max(userPos, truePos);
+      
+      // Gradient showing the error range
+      guessSlider.style.background = `linear-gradient(to right, 
+          var(--X) 0%, 
+          var(--X) ${minPos}%, 
+          ${gradientColor} ${minPos}%, 
+          ${gradientColor} ${maxPos}%, 
+          var(--Y) ${maxPos}%, 
+          var(--Y) 100%)`;
+  } else {
+    trueValueMarker.classList.remove('visible');
+    guessSlider.style.background = `linear-gradient(to right, var(--X) 0%, var(--X) ${val * 100}%, var(--Y) ${val * 100}%, var(--Y) 100%)`;
+  }
 }
 function updateTextInputFromSlider() {
   const value = parseFloat(guessSlider.value).toFixed(2); // adjust precision as needed
@@ -958,9 +1016,9 @@ document.querySelectorAll('.mode-btn').forEach(btn => {
 function updateStats() {
   document.getElementById('total-questions').textContent = gameStats.totalQuestions;
   document.getElementById('avg-error').textContent = gameStats.totalQuestions > 0 ? 
-    (gameStats.totalError / gameStats.totalQuestions).toFixed(3) : '0.000';
+    (gameStats.totalError / gameStats.totalQuestions).toFixed(2) : '0.00';
   document.getElementById('best-error').textContent = gameStats.bestError === Infinity ? '-' : 
-    gameStats.bestError.toFixed(3);
+    gameStats.bestError.toFixed(2);
 }
 
 // Generate x range for analytical PDFs
@@ -1062,6 +1120,7 @@ function updatePlot() {
 function onSubmit() {
   let guess = Number(guessSlider.value);
   let trueProb = calcTrueProbability(currentLeftExpr, currentRightExpr);
+  updateSliderGradient(showError = true, trueValue = trueProb)
   let error = Math.abs(guess - trueProb);
   let percentError = (error).toFixed(2);
   
@@ -1070,7 +1129,8 @@ function onSubmit() {
   if (error < gameStats.bestError) {
     gameStats.bestError = error;
   }
-  
+
+  answerSpan.innerHTML = `${trueProb.toFixed(2)}`;
   resultDiv.innerHTML = `
     <strong>True P(Left > Right) ≈ ${trueProb.toFixed(2)}</strong><br>
     Your error: ${percentError} ${error < 0.05 ? '🎯' : error < 0.1 ? '👍' : error < 0.2 ? '👌' : '💪'}
@@ -1128,18 +1188,6 @@ function nextQuestion() {
   // Update the distribution info text
   const xNodes = [...leftNodes.xNodes, ...rightNodes.xNodes];
   const yNodes = [...leftNodes.yNodes, ...rightNodes.yNodes];
-//   if (xNodes.length == 0) {
-//     let changedNode = yNodes.pop();
-//     changedNode.sampleId = 1;
-//     changedNode.children[0] = distX;
-//     xNodes.push(changedNode);
-//   }
-//   if (yNodes.length == 0) {
-//     let changedNode = xNodes.pop();
-//     changedNode.sampleId = 1;
-//     changedNode.children[0] = distX;
-//     yNodes.push(changedNode);
-//   }
 
   let xOut = [];
   for (let i = 0; i < xNodes.length; i++) { xOut.push(`X<sub>${i + 1}</sub>`); }
@@ -1153,6 +1201,7 @@ function nextQuestion() {
   
   leftExprSpan.innerHTML = currentLeftExpr.toString();
   rightExprSpan.innerHTML = currentRightExpr.toString();
+  answerSpan.innerHTML = "?";
 
   if (xNodes.length == 1) { areisaX.innerHTML = "is a sample"; }
   else { areisaX.innerHTML = "are samples"}
@@ -1185,7 +1234,6 @@ function nextQuestion() {
     guessTextInput.focus(); 
     guessTextInput.value = '0.'
   }
-  // Update plot
   updatePlot();
 }
 
@@ -1200,7 +1248,6 @@ function checkFocusBeforeClick(e) {
     const focusedElement = document.activeElement;
     wasNextButtonFocusedBeforeClick = focusedElement === nextBtn;
     wasSubmitButtonFocusedBeforeClick = focusedElement == submitBtn;
-    return wasFocused;
 }
 submitBtn.addEventListener('mousedown', checkFocusBeforeClick);
 submitBtn.addEventListener('keydown', checkFocusBeforeClick); 
