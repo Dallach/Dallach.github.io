@@ -149,14 +149,12 @@
   .expression-display {
     background-color: var(--double-container-background);
     padding: 15px;
-    border-radius: 5px;
-    margin-bottom: 20px;
+    border-radius: 5px 5px 0px 0px;
     text-align: center;
   }
   
   .expression {
     font-size: 1.2em;
-    margin-top: 10px;
     font-weight: bold;
   }
   
@@ -170,6 +168,11 @@
 
   .js-plotly-plot .plotly .cursor-pointer {
       cursor: default;
+  }
+
+  #plot {
+    border-radius: 0px 0px 5px 5px;
+    overflow: hidden;
   }
   
   .controls {
@@ -304,7 +307,7 @@ input[type="range"]::-moz-range-thumb {
   }
   
   #result {
-    margin-top: 15px;
+    margin: 5px 0px 20px 0px;
     padding: 10px;
     border-radius: 5px;
     background-color: var(--double-container-background);
@@ -313,7 +316,7 @@ input[type="range"]::-moz-range-thumb {
   .stats {
     display: flex;
     justify-content: space-around;
-    margin-top: 10px;
+    margin: 10px;
     text-align: center;
   }
   
@@ -362,7 +365,7 @@ input[type="range"]::-moz-range-thumb {
   }
 
   .dist-info {
-    margin-top: 10px;
+    margin-top: 5px;
     font-size: 0.9em;
     color: #aaa;
   }
@@ -370,7 +373,7 @@ input[type="range"]::-moz-range-thumb {
 </head>
 <body>
 
-<div class="container">
+<div id = 'container' class="container">
     <div class="header">
         <h1>Guesstimate</h1>
         <div class="mode-selector">
@@ -399,6 +402,40 @@ input[type="range"]::-moz-range-thumb {
       <label class="guess-label" for="guess">Your guess: <input id="corr-input" type="text" inputmode="decimal" /></label>
       <div class="slider-container">
         <input type="range" id="guess" min="0" max="1" step="0.01" value="0.0" tabindex="-1"/>
+        <div id="slider-thumb-label" style="
+        position: absolute;
+        display: none;
+        bottom: -25px;
+        left: 0;
+        transform: translateX(-50%);
+        color: var(--color-text);
+        font-weight: bold;
+        pointer-events: none;
+        font-size: 0.85em;
+        white-space: nowrap;
+        z-index: 3;
+      ">
+        <div style="
+          background-color: var(--double-container-background);
+          padding: 2px 6px;
+          border-radius: 4px;
+          position: relative;
+          display: inline-block;
+        ">
+          <span id="slider-thumb-value">0.00</span>
+          <div style="
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-left: 5px solid transparent;
+            border-right: 5px solid transparent;
+            border-bottom: 5px solid var(--double-container-background);
+            transform: translateX(-50%);
+          "></div>
+        </div>
+      </div>
         <div class="true-value-marker" id="true-value-marker"></div>
       </div>
     </div>
@@ -406,7 +443,7 @@ input[type="range"]::-moz-range-thumb {
       <button class="btn" id="next-btn" style="display:none;">Next</button>
       <button class="btn" id="submit-btn">Submit</button>
     </div>
-    <div id="result"></div>
+    <div id="result">Error = </div>
   </div>
 
   <div class="stats">
@@ -423,6 +460,7 @@ input[type="range"]::-moz-range-thumb {
       <div>Best Error</div>
     </div>
   </div>
+  <div id="emoji"></div>
 </div>
 <script>
 
@@ -918,6 +956,9 @@ const distInfoDiv = document.getElementById("dist-info");
 const areisaX = document.getElementById("areisaX");
 const areisaY = document.getElementById("areisaY");
 const guessTextInput = document.getElementById('corr-input');
+const thumbLabel = document.getElementById('slider-thumb-label');
+const thumbValue = document.getElementById('slider-thumb-value');
+const emojiContainer = document.getElementById('emoji')
 guessTextInput.value = '0.';
 
 guessTextInput.addEventListener('input', () => {
@@ -949,8 +990,12 @@ function updateSliderGradient(showError = false, trueValue = null) {
   if (showError && trueValue !== null) {
       // Show true value marker
       const truePercentage = trueValue * 100;
-      trueValueMarker.style.left = truePercentage + '%';
+      trueValueMarker.style.left = `${truePercentage}%`;
       trueValueMarker.classList.add('visible');
+
+      thumbLabel.style.display = 'block'
+      thumbLabel.style.left = `${truePercentage}%`;
+      thumbValue.textContent = "P = " + trueValue.toFixed(2);
       
       // Calculate error and set color gradient
       const error = Math.abs(val - trueValue);
@@ -982,6 +1027,7 @@ function updateSliderGradient(showError = false, trueValue = null) {
           var(--Y) 100%)`;
   } else {
     trueValueMarker.classList.remove('visible');
+    thumbLabel.style.display = 'none';
     guessSlider.style.background = `linear-gradient(to right, var(--X) 0%, var(--X) ${val * 100}%, var(--Y) ${val * 100}%, var(--Y) 100%)`;
   }
 }
@@ -1013,6 +1059,7 @@ function resetModeFromURL() {
     if (URLMode == gameStats.currentMode) { return; }
     gameStats = { ...defaultGameStats};
     gameStats.currentMode = URLMode;
+    emojiContainer.innerHTML = "";
     updateStats();
     // Update active mode button
     document.querySelectorAll('.mode-btn').forEach(btn => {
@@ -1157,10 +1204,13 @@ function onSubmit() {
   }
 
   answerSpan.innerHTML = `${trueProb.toFixed(2)}`;
+  emoji = error < 0.01 ? '✨' : error < 0.05 ? '🎯' : error < 0.1 ? '👌' : error < 0.2 ? '👍' : error < 0.5 ? '😐' : '😔';
   resultDiv.innerHTML = `
-    Your error: ${percentError} ${error < 0.05 ? '🎯' : error < 0.1 ? '👍' : error < 0.2 ? '👌' : '💪'}
+    Error = ${percentError} ${emoji}
   `;
-  resultDiv.style.display = 'block'
+  emojiContainer.innerHTML += emoji;
+
+  resultDiv.style.visibility = 'visible';
   
   guessSlider.disabled = true;
   guessTextInput.disabled = true;
@@ -1248,10 +1298,9 @@ function nextQuestion() {
   guessSlider.value = 0.0;
   updateTextInputFromSlider();
   updateSliderGradient();
-  resultDiv.textContent = "";
   submitBtn.style.display = "inline-block";
   nextBtn.style.display = "none";
-  resultDiv.style.display = "none";
+  resultDiv.style.visibility = "hidden";
   guessSlider.disabled = false;
   guessTextInput.disabled = false;
   guessTextInput.tabIndex = 0;
