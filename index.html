@@ -1287,6 +1287,48 @@ guessTextInput.addEventListener('keydown', (e) => {
     onSubmit();
     nextBtn.focus();
   }
+  if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+    e.preventDefault();
+    let currentValue = parseFloat(guessTextInput.value) || 0;
+    const increment = e.shiftKey ? 0.1 : 0.01;
+    if (e.key === 'ArrowUp') {
+      currentValue = Math.min(1.00, currentValue + increment);
+    } else {
+      currentValue = Math.max(0.00, currentValue - increment);
+    }
+    guessTextInput.value = currentValue.toFixed(2);
+    updateSliderFromTextInput();
+  }
+});
+document.querySelectorAll('.mode-btn').forEach(btn => {
+  btn.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+      e.preventDefault();
+      
+      const buttons = Array.from(document.querySelectorAll('.mode-btn'));
+      const currentIndex = buttons.indexOf(e.target);
+      
+      let nextIndex;
+      if (e.key === 'ArrowRight') {
+        nextIndex = (currentIndex + 1) % buttons.length; // Wrap to first
+      } else {
+        nextIndex = (currentIndex - 1 + buttons.length) % buttons.length; // Wrap to last
+      }
+      
+      buttons[nextIndex].focus();
+    }
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      (submitBtn.style.display === 'none' ? nextBtn : guessTextInput).focus();
+    }
+  });
+});
+nextBtn.addEventListener('keydown', (e) => {
+if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    const activeBtn = document.querySelector('.mode-btn.active');
+    activeBtn.focus();
+  }
 });
 // Initialize with mode from URL
 window.addEventListener('load', () => {
