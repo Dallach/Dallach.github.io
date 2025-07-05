@@ -920,20 +920,27 @@ const areisaY = document.getElementById("areisaY");
 const guessTextInput = document.getElementById('corr-input');
 guessTextInput.value = '0.';
 
-guessTextInput.addEventListener('beforeguessTextInput', (e) => {
-  if (guessTextInput.selectionStart <= 2 && e.guessTextInputType.startsWith('delete') === false) {
-    e.preventDefault();
-    guessTextInput.setSelectionRange(guessTextInput.value.length, guessTextInput.value.length);
-  }
-});
-
 guessTextInput.addEventListener('input', () => {
-  if (!guessTextInput.value.startsWith('0.')) {
+  if (isNaN(parseFloat(guessTextInput.value))) {
     let digits = guessTextInput.value.replace(/[^0-9]/g, '');
-    if (digits && digits.length >= 1 && digits[0] == '0') {
-      digits.slice(1)
+    if (!digits) {
     }
-    guessTextInput.value = '0.' + digits;
+    else if (digits.length == 1 && digits[0] == 1) {
+      guessTextInput.value = '1.00';
+    }
+    else if (digits.length >= 1 && digits[0] == '0') {
+      digits.slice(1)
+      guessTextInput.value = '0.' + digits;
+    } else {
+      guessTextInput.value = '0.' + digits;
+    }
+  } else {
+    floatVal = parseFloat(guessTextInput.value);
+    if (floatVal > 1) {
+      guessTextInput.value = '1.00';
+    } else if (floatVal < 0) {
+      guessTextInput.value = '0.00';
+    }
   }
 });
 
@@ -978,13 +985,15 @@ function updateSliderGradient(showError = false, trueValue = null) {
     guessSlider.style.background = `linear-gradient(to right, var(--X) 0%, var(--X) ${val * 100}%, var(--Y) ${val * 100}%, var(--Y) 100%)`;
   }
 }
+
 function updateTextInputFromSlider() {
   const value = parseFloat(guessSlider.value).toFixed(2); // adjust precision as needed
-  guessTextInput.value = '0.' + value.split('.')[1];
+  if (value == 1.00) { guessTextInput.value = '1.00'}
+  else { guessTextInput.value = '0.' + value.split('.')[1] };
 }
 function updateSliderFromTextInput() {
-  const value = parseFloat(guessTextInput.value).toFixed(2); // adjust precision as needed
-  console.log(`value: ${value}`);
+  let value = parseFloat(guessTextInput.value).toFixed(2); // adjust precision as needed
+  if (isNaN(value)) { value = 0.00; }
   guessSlider.value = value;
   updateSliderGradient();
 }
@@ -1069,8 +1078,6 @@ function generateXRange(dist, points = 300) {
     case "triangular":
       minX = params[0] - 0.5;
       maxX = params[2] + 0.5;
-      console.log("dist: " + dist);
-      console.log(`minX: ${minX}, maxX: ${maxX}`);
       break;
     default:
       minX = -5;
@@ -1132,11 +1139,12 @@ function updatePlot() {
     },
   };
 
-  Plotly.newPlot('plot', [traceX, traceY], layout, {displayModeBar:false});
+  Plotly.newPlot('plot', [traceX, traceY], layout, {displayModeBar:false, responsive:true});
 }
 
 function onSubmit() {
-  let guess = Number(guessSlider.value);
+  let guess = parseFloat(guessSlider.value);
+  if (isNaN(parseFloat(guessTextInput.value))) { guessTextInput.value = '0.00'; }
   let trueProb = calcTrueProbability(currentLeftExpr, currentRightExpr);
   updateSliderGradient(showError = true, trueValue = trueProb)
   let error = Math.abs(guess - trueProb);
