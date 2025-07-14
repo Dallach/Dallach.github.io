@@ -776,7 +776,7 @@ class ExpressionNode {
         out = `${this.children[0].toString()} × ${this.children[1].toString()}`;
         break;
       case 'div':
-        out = `${this.children[0].toString()} ÷ ${this.children[1].toString()}`;
+        out = `${this.children[0].toString()} / ${this.children[1].toString()}`;
         break;
       case 'min':
         if (this.parent && this.type == this.parent.type) {
