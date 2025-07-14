@@ -11,7 +11,7 @@
 <link rel="apple-touch-icon" sizes="180x180" href="favicon-256x256.png">
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Guesstimate</title>
+<title>Quantify</title>
 <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 <script data-goatcounter="https://guesstimate.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
 <style>
@@ -376,7 +376,7 @@ input[type="range"]::-moz-range-thumb {
 
 <div id = 'container' class="container">
     <div class="header">
-        <h1>Guesstimate</h1>
+        <h1>Quantify</h1>
         <div class="mode-selector">
             <button class="mode-btn active" data-mode="easy">Easy</button>
             <button class="mode-btn" data-mode="medium">Medium</button>
@@ -1086,7 +1086,7 @@ document.querySelectorAll('.mode-btn').forEach(btn => {
 function updateStats() {
   document.getElementById('total-questions').textContent = gameStats.totalQuestions;
   document.getElementById('avg-error').textContent = gameStats.totalQuestions > 0 ? 
-    (gameStats.totalError / gameStats.totalQuestions).toFixed(2) : '0.00';
+    (gameStats.totalError / gameStats.totalQuestions).toFixed(2) : '-';
   document.getElementById('best-error').textContent = gameStats.bestError === Infinity ? '-' : 
     gameStats.bestError.toFixed(2);
 }
